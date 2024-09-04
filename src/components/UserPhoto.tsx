@@ -3,7 +3,7 @@ import { ComponentProps } from "react";
 
 type Props = ComponentProps<typeof Image>;
 
-export function UserFoto({ ...rest }: Props) {
+export function UserPhoto({ ...rest }: Props) {
   return (
     <Image 
       rounded="$full"

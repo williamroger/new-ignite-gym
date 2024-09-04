@@ -1,11 +1,11 @@
 import { Heading, Text, HStack, VStack, Icon, } from "@gluestack-ui/themed";
-import { UserFoto } from "./UserFoto";
+import { UserPhoto } from "./UserPhoto";
 import { LogOut } from "lucide-react-native";
 
 export function HomeHeader() {
   return (
     <HStack bg="$gray600" pt="$16" pb="$5" px="$8" alignItems="center" gap="$4">
-      <UserFoto 
+      <UserPhoto 
         source="https://github.com/williamroger.png" 
         alt="Imagem do usuário" 
         w="$16"
