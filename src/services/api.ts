@@ -3,7 +3,7 @@ import axios from 'axios';
 import { AppError } from '@utils/AppError';
 
 const api = axios.create({
-  baseURL: 'https://eef9-179-189-247-194.ngrok-free.app',
+  baseURL: 'https://ae29-179-189-247-194.ngrok-free.app',
 });
 
 api.interceptors.response.use(response => {
