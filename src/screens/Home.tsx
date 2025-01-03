@@ -20,17 +20,18 @@ export function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [exercises, setExercises] = useState<ExerciseDTO[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
-  const [groupSelected, setGroupSelected] = useState('costas');
+  const [groupSelected, setGroupSelected] = useState('');
   const navigation = useNavigation<AppNavigatorRoutesProps>();
 
-  function handleOpenExerciseDetails() {
-    navigation.navigate('exercise');
+  function handleOpenExerciseDetails(exerciseId: string) {
+    navigation.navigate('exercise', { exerciseId });
   }
 
   async function fetchGroups() {
     try {
       const response = await api.get('/groups');
       setGroups(response.data);
+      setGroupSelected(response.data[0]);
     } catch (error) {
       const isAppError = error instanceof AppError;
       const title = isAppError ? error.message : 'Não foi possível carregar os grupos musculares.';
@@ -115,7 +116,7 @@ export function Home() {
             data={exercises}
             keyExtractor={item => item.id}
             renderItem={({ item }) => (
-              <ExerciseCard data={item} onPress={handleOpenExerciseDetails} />
+              <ExerciseCard data={item} onPress={() => handleOpenExerciseDetails(item.id)} />
             )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
