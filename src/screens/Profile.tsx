@@ -1,17 +1,62 @@
 import { useState } from 'react';
-import { Alert, ScrollView, TouchableOpacity } from 'react-native';
-import { Center, Heading, Text, VStack, useToast, } from "@gluestack-ui/themed";
+import { ScrollView, TouchableOpacity } from 'react-native';
+import { Center, Heading, Text, VStack, onChange, useToast, } from "@gluestack-ui/themed";
+import { Controller, useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+
+
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+
 import { ToastMessage } from '@components/ToastMessage';
 import { ScreenHeader } from "@components/ScreenHeader";
 import { UserPhoto } from '@components/UserPhoto';
 import { Input } from '@components/Input';
 import { Button } from '@components/Button';
+import { useAuth } from '@hooks/useAuth';
+
+type FormDataProps = {
+  name: string;
+  email?: string;
+  old_password?: string | null | undefined;
+  password?: string | null | undefined;
+  confirm_password?: string | null | undefined;
+};
+
+const profileSchema = yup.object({
+  name: yup.string().required('Informe o nome.'),
+  email: yup.string().required('Informe seu email.').email('Email inválido'),
+  old_password: yup.string(),
+  password: yup
+    .string()
+    .min(6, 'A senha deve ter pelo menos 6 dígitos.')
+    .nullable()
+    .transform((value) => !!value ? value : null),
+  confirm_password: yup
+    .string()
+    .nullable()
+    .transform((value) => !!value ? value : null)
+    .oneOf([yup.ref('password'), ''], 'A confirmação de senha não confere.')
+    .when('password', {
+      is: (Field: any) => Field,
+      then: (schema) =>
+        schema.nullable().required('Informe a confirmação da senha.').transform((value) => !!value ? value : null),
+    }),
+});
 
 export function Profile() {
   const [userPhoto, setUserPhoto] = useState('https://github.com/williamroger.png');
-  
+
+  const { user } = useAuth();
+  const { control, handleSubmit, formState: { errors } } = useForm<FormDataProps>({
+    resolver: yupResolver(profileSchema),
+    defaultValues: {
+      name: user.name,
+      email: user.email,
+    },
+  });
+
   const toast = useToast();
 
   async function handleUserPhotoSelect() {
@@ -54,6 +99,10 @@ export function Profile() {
     }
   }
 
+  async function handleProfileUpdate(data: FormDataProps) {
+    console.log('data ', data)
+  }
+
   return (
     <VStack flex={1}>
       <ScreenHeader title="Perfil" />
@@ -78,8 +127,31 @@ export function Profile() {
           </TouchableOpacity>
 
           <Center w="$full" gap="$4">
-            <Input placeholder="Nome" bg="$gray600" />
-            <Input value="william@roger.com" bg="$gray600" isReadOnly />
+            <Controller 
+              name="name"
+              control={control}
+              render={({ field: { value, onChange } }) => (
+                <Input 
+                  placeholder="Nome" 
+                  bg="$gray600" 
+                  onChangeText={onChange}
+                  value={value}
+                  errorMessage={errors.name?.message}
+                />
+              )}
+            />
+
+            <Controller 
+              name="email"
+              control={control}
+              render={({  field: { value } }) => (
+                <Input 
+                  bg="$gray600" 
+                  isReadOnly 
+                  value={value} 
+                />
+              )}
+            />
           </Center>
 
           <Heading
@@ -94,10 +166,47 @@ export function Profile() {
           </Heading>
 
           <Center w="$full" gap="$4">
-            <Input placeholder="Senha antiga" bg="$gray600" secureTextEntry />
-            <Input placeholder="Nova senha" bg="$gray600" secureTextEntry />
-            <Input placeholder="Confirme a nova senha" bg="$gray600" secureTextEntry />
-            <Button title="Atualizar" />
+            <Controller 
+              name="old_password"
+              control={control}
+              render={({ field: { onChange }}) => (
+                <Input 
+                  placeholder="Senha antiga" 
+                  bg="$gray600" 
+                  secureTextEntry 
+                  onChangeText={onChange}
+                />
+              )}
+            />
+
+            <Controller 
+              name="password"
+              control={control}
+              render={({ field: { onChange }}) => (
+                <Input 
+                  placeholder="Nova senha" 
+                  bg="$gray600" 
+                  secureTextEntry 
+                  onChangeText={onChange}
+                  errorMessage={errors.password?.message}
+                />
+              )}
+            />
+
+            <Controller 
+              name="confirm_password"
+              control={control}
+              render={({ field: { onChange }}) => (
+                <Input 
+                  placeholder="Confirme a nova senha" 
+                  bg="$gray600" 
+                  secureTextEntry
+                  onChangeText={onChange} 
+                  errorMessage={errors.confirm_password?.message}
+                />
+              )}
+            />
+            <Button title="Atualizar" onPress={handleSubmit(handleProfileUpdate)}/>
           </Center>
         </Center>
       </ScrollView>
