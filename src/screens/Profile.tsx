@@ -15,7 +15,10 @@ import { UserPhoto } from '@components/UserPhoto';
 import { Input } from '@components/Input';
 import { Button } from '@components/Button';
 import { useAuth } from '@hooks/useAuth';
+
 import { api } from '@services/api';
+
+import defaultUserPhotoImg from "@assets/userPhotoDefault.png";
 
 type FormDataProps = {
   name: string;
@@ -48,7 +51,6 @@ const profileSchema = yup.object({
 
 export function Profile() {
   const [isUpdating, setIsUpdating] = useState(false);
-  const [userPhoto, setUserPhoto] = useState('https://github.com/williamroger.png');
 
   const { user, updateUserProfile } = useAuth();
   const { control, handleSubmit, formState: { errors } } = useForm<FormDataProps>({
@@ -94,7 +96,34 @@ export function Profile() {
           });
         }
 
-        setUserPhoto(photoURI);
+        const fileExtension = photoURI.split('.').pop();
+        const photoFile = {
+          name: `${user.name.replaceAll(' ', '')}.${fileExtension}`.toLowerCase(),
+          uri: photoURI,
+          type: `${photoSelected.assets[0].type}/${fileExtension}`,
+        } as any;
+
+        const userPhotoUploadForm = new FormData();
+        userPhotoUploadForm.append('avatar', photoFile);
+
+        const avatarUpdatedResponse = await api.patch('/users/avatar', userPhotoUploadForm, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        });
+
+        const userUpdated = user;
+        userUpdated.avatar = avatarUpdatedResponse.data.avatar;
+        updateUserProfile(userUpdated);
+
+        toast.show({
+          placement: 'top',
+          render: () => (
+            <Toast bg="$green500">
+              <ToastTitle>Foto atualizada!</ToastTitle>
+            </Toast>
+          )
+        });
       }
     } catch (error) {
       console.log('handleUserPhotoSelect>error: ', error);
@@ -143,7 +172,10 @@ export function Profile() {
       <ScrollView contentContainerStyle={{ paddingBottom: 36, }}>
         <Center mt="$6" px="$10">
           <UserPhoto
-            source={userPhoto}
+            source={user.avatar 
+              ? { uri: `${api.defaults.baseURL}/avatar/${user.avatar}` } 
+              : defaultUserPhotoImg
+            } 
             alt="Foto do usuário"
             size="xl"
           />
