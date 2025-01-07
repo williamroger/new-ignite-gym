@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { ScrollView, TouchableOpacity } from 'react-native';
-import { Center, Heading, Text, VStack, onChange, useToast, } from "@gluestack-ui/themed";
+import {Center, Heading, Text, VStack, useToast, Toast, ToastTitle, } from "@gluestack-ui/themed";
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
-
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
+import { AppError } from '@utils/AppError';
 import { ToastMessage } from '@components/ToastMessage';
 import { ScreenHeader } from "@components/ScreenHeader";
 import { UserPhoto } from '@components/UserPhoto';
 import { Input } from '@components/Input';
 import { Button } from '@components/Button';
 import { useAuth } from '@hooks/useAuth';
+import { api } from '@services/api';
 
 type FormDataProps = {
   name: string;
@@ -46,9 +47,10 @@ const profileSchema = yup.object({
 });
 
 export function Profile() {
+  const [isUpdating, setIsUpdating] = useState(false);
   const [userPhoto, setUserPhoto] = useState('https://github.com/williamroger.png');
 
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const { control, handleSubmit, formState: { errors } } = useForm<FormDataProps>({
     resolver: yupResolver(profileSchema),
     defaultValues: {
@@ -100,7 +102,38 @@ export function Profile() {
   }
 
   async function handleProfileUpdate(data: FormDataProps) {
-    console.log('data ', data)
+    try {
+      setIsUpdating(true);
+      
+      const userUpdated = user;
+      userUpdated.name = data.name;
+
+      await api.put('/users', data);
+      await updateUserProfile(userUpdated);
+      
+      toast.show({
+        placement:  'top',
+        render: () => (
+          <Toast bg="$green700">
+            <ToastTitle>Perfil atualizado com sucesso!</ToastTitle>
+          </Toast>
+        )
+      });
+    } catch (error) {
+      const isAppError = error instanceof AppError;
+      const title = isAppError ? error.message : 'Não foi possível atualizar os dados.';
+
+      toast.show({
+        placement: 'top',
+        render: () => (
+          <Toast bg="$red500">
+            <ToastTitle>{title}</ToastTitle>
+          </Toast>
+        )
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   }
 
   return (
@@ -206,7 +239,11 @@ export function Profile() {
                 />
               )}
             />
-            <Button title="Atualizar" onPress={handleSubmit(handleProfileUpdate)}/>
+            <Button 
+              title="Atualizar" 
+              onPress={handleSubmit(handleProfileUpdate)}
+              isLoading={isUpdating}
+            />
           </Center>
         </Center>
       </ScrollView>
